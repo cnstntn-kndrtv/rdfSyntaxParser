@@ -4,8 +4,8 @@ let conllTags2rdf = require('./utils/conllTags2rdf');
 
 let c = new conllu.Conllu()
 // c.serial = fs.readFileSync('./syntagrus/ru_syntagrus-ud-train.conllu', 'utf8');
-// c.serial = fs.readFileSync('./syntagrus/ru_syntagrus-ud-test.conllu', 'utf8');
-c.serial = fs.readFileSync('./syntagrus/test.conllu', 'utf8');
+c.serial = fs.readFileSync('./syntagrus/ru_syntagrus-ud-test.conllu', 'utf8');
+// c.serial = fs.readFileSync('./syntagrus/test.conllu', 'utf8');
 
 // { type:'amod', rule: '...', frequency: 1, weight: 1, id: type+uniqNumber }
 let rules = [];

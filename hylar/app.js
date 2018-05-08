@@ -6,61 +6,43 @@ let getBase = require('./getBase');
 let { prefixedToFullUri } = require('./prefixes');
 let view = require('./view');
 
-
-// http://www.w3.org/1999/02/22-rdf-syntax-ns#rdf:type http://kloud.one/rdfudedges#Obl
-// -> (:id http://www.w3.org/1999/02/22-rdf-syntax-ns#type http://kloud.one/rdfudedges#Case) ^ (:id http://www.w3.org/2002/07/owl#annotatedProperty http://www.w3.org/2000/01/rdf-schema#subClassOf) ^ (:id http://www.w3.org/2002/07/owl#annotatedSource ?S) ^ (:id http://www.w3.org/2002/07/owl#annotatedTarget ?O) .",
-// let q = `
-// PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#>
-// PREFIX lexinfo: <http://www.lexinfo.net/ontology/2.0/lexinfo#>
-// PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-// PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-// PREFIX owl: <http://www.w3.org/2002/07/owl#>
-// PREFIX ud: <http://kloud.one/rdfudedges#>
-//
-// SELECT *
-// WHERE {
-//     ?headId ontolex:writtenRep "открывались"@ru .
-//     ?tailId ontolex:writtenRep "школы"@ru .
-//     ?linkId owl:annotatedSource ?headId ;
-//             owl:annotatedTarget ?tailId ;
-//             rdf:type ?linkType .
-// }
-// `
-
 let q = `
 SELECT *
 WHERE { ?s ?p ?o }
 `
 
 let terms = [
-    'По',
-    'балльной',
-    'системе',
-    'Германия',
-    'получила',
-    '12',
-    'баллов',
-    ',',
-    'США',
-    ',',
-    'Швейцария',
-    '-',
-    '4',
-    ',',
-    'Англия',
-    ',',
-    'Китай',
-    ',',
-    'Швеция',
-    '-',
-    '3',
-    ',',
-    'Франция',
-    ',',
-    'Япония',
-    '-',
-    '2',
-    'балла',
+    // 'По',
+    // 'балльной',
+    // 'системе',
+    // 'Германия',
+    // 'получила',
+    // '12',
+    // 'баллов',
+    // ',',
+    // 'США',
+    // ',',
+    // 'Швейцария',
+    // '-',
+    // '4',
+    // ',',
+    // 'Англия',
+    // ',',
+    // 'Китай',
+    // ',',
+    // 'Швеция',
+    // '-',
+    // '3',
+    // ',',
+    // 'Франция',
+    // ',',
+    // 'Япония',
+    // '-',
+    // '2',
+    // 'балла',
+    'петя',
+    'составляет',
+    'карту'
 ]
 
 let fakeRules = [
@@ -96,11 +78,11 @@ parseAndAddRules(require('../rules/_all.json'))
         return h.query(q);
     })
     .then((res) => {
-        console.log('query results:');
         view(res);
-        // res.forEach((r) => {
-        //     console.log(r.s.value, r.p.value, r.o.value);
-        // })
+    })
+    .then(() => {
+        // oracle('петя составляет карту');
+        oracle('петя составляет');
     })
 
 function parseAndAddRules(rules) {
@@ -116,4 +98,65 @@ function parseAndAddRules(rules) {
         }
         else resolve('no rules')
     })
+}
+
+function searchArc(head, dep, cb) {
+    head = head.toLowerCase();
+    dep = dep.toLowerCase();
+    let q = `
+    PREFIX ontolex: <http://www.w3.org/ns/lemon/ontolex#>
+    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    SELECT ?linkType ?linkId
+    WHERE { 
+        ?headId ontolex:writtenRep "${head}"@ru .
+        ?depId ontolex:writtenRep "${dep}"@ru .
+        ?linkId rdf:type ?linkType ;
+                owl:annotatedSource ?headId ;
+                owl:annotatedTarget ?depId .
+    }
+    `
+    h.query(q)
+        .then(res => {
+            res.forEach(r => {
+                let str = `${r.linkType.value} (${r.linkId.value})`
+                cb(str);
+            })
+            // console.log(res);
+            
+        })
+}
+
+function oracle(sentence) {
+    console.log(sentence);
+    sentence = sentence.split(' ');
+    
+    for (let i = 0; i < sentence.length; i++) {
+        let found = false;
+        let leftIndex = i - 1;
+        let rightIndex = i + 1;
+        let w1 = sentence[i];
+        
+        while (!found) {
+            console.log(i, rightIndex, leftIndex);
+            
+            if (rightIndex <= sentence.length - 1) {
+                let w2 = sentence[rightIndex];
+                searchArc(w1, w2, (arc) => {
+                    found = arc;
+                    console.log("Right ", w1, " и ", w2, i, rightIndex," связь : ", found);
+                });
+                rightIndex++;
+            }
+            if (leftIndex >= 0 && !found) {
+                let w2 = sentence[leftIndex];
+                searchArc(w1, w2, (arc) => {
+                    found = arc;
+                    console.log("Left ", w1, " и ", w2, i, leftIndex," связь : ", found);
+                });
+                leftIndex--;
+            }
+            if (leftIndex < 0 && rightIndex > sentence.length - 1) break
+        }
+    }
 }
